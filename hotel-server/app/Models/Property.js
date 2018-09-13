@@ -10,6 +10,10 @@ class Property extends Model {
   images() {
     return this.hasMany('App/Models/Image')
   }
+
+  static scopeNearBy (query, latidude, longitude, distance) {
+    return query
+  }
 }
 
 module.exports = Property
