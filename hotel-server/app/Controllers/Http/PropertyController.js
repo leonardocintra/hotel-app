@@ -10,8 +10,12 @@ class PropertyController {
    * Show a list of all properties.
    * GET properties
    */
-  async index ({ request, response, view }) {
-    const properties = Property.all()
+  async index({ request }) {
+    const { latitude, longitude } = request.all()
+
+    const properties = Property.query()
+      .nearBy(latitude, longitude, 10)
+      .fetch()
 
     return properties
   }
@@ -20,14 +24,26 @@ class PropertyController {
    * Create/save a new property.
    * POST properties
    */
-  async store ({ request, response }) {
+  async store({ auth, request, response }) {
+    const { id } = auth.user
+    const data = request.only([
+      'title',
+      'address',
+      'latitude',
+      'longitude',
+      'price'
+    ])
+
+    const property = await Property.create({...data, user_id: id})
+
+    return property
   }
 
   /**
    * Display a single property.
    * GET properties/:id
    */
-  async show ({ params }) {
+  async show({ params }) {
     const property = await Property.findOrFail(params.id)
     //await property.load('images')
     return property
@@ -37,18 +53,31 @@ class PropertyController {
    * Update property details.
    * PUT or PATCH properties/:id
    */
-  async update ({ params, request, response }) {
+  async update({ params, request, response }) {
+    const property = await Property.findOrFail(params.id)
+    const data = request.only([
+      'title',
+      'address',
+      'latitude',
+      'longitude',
+      'price'
+    ])
+
+    property.merge(data)
+    await property.save()
+
+    return property
   }
 
   /**
    * Delete a property with id.
    * DELETE properties/:id
    */
-  async destroy ({ params, request, response }) {
+  async destroy({ params, request, response }) {
     const property = await Property.findOrFail(params.id)
 
     if (property.user_id !== auth.user.id) {
-      return response.status(401).send({error: 'Not authorized'})
+      return response.status(401).send({ error: 'Not authorized' })
     }
 
     await property.delete()
